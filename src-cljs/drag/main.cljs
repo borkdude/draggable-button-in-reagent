@@ -16,18 +16,26 @@
   (and (< (Math/abs (- x (:x black-hole-pos))) 50)
        (< (Math/abs (- y (:y black-hole-pos))) 50)))
 
+(defn get-client-rect [evt]
+  (let [r (.getBoundingClientRect (.-target evt))]
+    {:left (.-left r), :top (.-top r)}))
+
 (defn draggable-button []
-  (let [mouse-move-handler (fn [evt]
-                             (let [x (.-clientX evt)
-                                   y (.-clientY evt)]
-                               (if (close? x y)
-                                 (reset! draggable {:alive? false})
-                                 (reset! draggable {:x x
-                                                    :y y
-                                                    :alive? true}))))
-        mouse-up-handler (fn me [evt]
-                           (events/unlisten js/window EventType.MOUSEMOVE
-                                            mouse-move-handler))]
+  (let [mouse-move-handler
+        (fn [offset]
+          (fn [evt]
+            (let [x (- (.-clientX evt) (:x offset))
+                  y (- (.-clientY evt) (:y offset))]
+              (if (close? x y)
+                (reset! draggable {:alive? false})
+                (reset! draggable {:x x
+                                   :y y
+                                   :alive? true})))))
+        mouse-up-handler
+        (fn [on-move]
+          (fn me [evt]
+            (events/unlisten js/window EventType.MOUSEMOVE
+                             on-move)))]
     (fn []
       [:div
        [:h1 (pr-str @draggable)]
@@ -42,12 +50,15 @@
           {:style {:position "absolute"
                    :left (str (:x @draggable) "px");
                    :top (str (:y @draggable) "px")}
-           :on-mouse-down (fn []
-
-                            (events/listen js/window EventType.MOUSEMOVE
-                                           mouse-move-handler)
-                            (events/listen js/window EventType.MOUSEUP
-                                           mouse-up-handler)
+           :on-mouse-down (fn [e]
+                            (let [{:keys [left top]} (get-client-rect e)
+                                  offset {:x (- (.-clientX e) left)
+                                          :y (- (.-clientY e) top)}
+                                  on-move (mouse-move-handler offset)]
+                              (events/listen js/window EventType.MOUSEMOVE
+                                             on-move)
+                              (events/listen js/window EventType.MOUSEUP
+                                             (mouse-up-handler on-move)))
                             )}
           "Drag me"])])))
 
