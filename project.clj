@@ -17,14 +17,18 @@
 
   :source-paths ["src"]
 
-  :cljsbuild {:builds [{:id "drag"
+  :cljsbuild {:builds [{:id "dev"
                         :source-paths ["src-cljs"]
                         :compiler {:main drag.main
-                                   :asset-path "/out"
+                                   :asset-path "out"
                                    :output-to "resources/public/drag.js"
                                    :output-dir "resources/public/out"
                                    :optimizations :none
-                                   :source-map true}}]}
+                                   :source-map true}}
+                       {:id "prod"
+                        :source-paths ["src-cljs"]
+                        :compiler {:output-to "resources/public/drag.js"
+                                   :optimizations :advanced}}]}
 
   :ring {:handler drag.api/handler
          :nrepl {:start? true :port 4500}
